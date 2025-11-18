@@ -237,7 +237,8 @@ def get_coords(area):
 
 def create_map(df, selected_commute="All", show_jobs=True, show_vcs=True):
     if selected_commute != "All":
-        df = df[df['commute_rating'].str.contains(selected_commute)]
+        # Handle NaN values in commute_rating
+        df = df[df['commute_rating'].notna() & (df['commute_rating'].astype(str).str.contains(selected_commute))]
     
     # Filter by type - handle NaN safely
     if not show_jobs:
