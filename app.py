@@ -239,11 +239,13 @@ def create_map(df, selected_commute="All", show_jobs=True, show_vcs=True):
     if selected_commute != "All":
         df = df[df['commute_rating'].str.contains(selected_commute)]
     
-    # Filter by type
+    # Filter by type - handle NaN safely
     if not show_jobs:
-        df = df[df['type'].notna() & (df['type'].str.upper() == 'VC')]
+        # Only show VCs
+        df = df[df['type'].notna() & (df['type'].astype(str).str.upper() == 'VC')]
     if not show_vcs:
-        df = df[df['type'].isna() | (df['type'].str.upper() != 'VC')]
+        # Hide VCs (show jobs and NaN types)
+        df = df[df['type'].isna() | (df['type'].astype(str).str.upper() != 'VC')]
     
     m = folium.Map(
         location=[34.0211, -118.3965],
@@ -403,8 +405,15 @@ def main():
     with col1:
         st.header("📍 Job Map")
         
-        num_jobs = len(filtered_df[filtered_df['type'].isna() | (filtered_df['type'].str.upper() != 'VC')]) if 'type' in filtered_df.columns else len(filtered_df)
-        num_vcs = len(filtered_df[filtered_df['type'].notna() & (filtered_df['type'].str.upper() == 'VC')]) if 'type' in filtered_df.columns else 0
+        # Count jobs and VCs - handle NaN safely
+        if 'type' in filtered_df.columns:
+            # Convert to string first to avoid AttributeError
+            type_str = filtered_df['type'].astype(str)
+            num_jobs = len(filtered_df[filtered_df['type'].isna() | (type_str.str.upper() != 'VC')])
+            num_vcs = len(filtered_df[filtered_df['type'].notna() & (type_str.str.upper() == 'VC')])
+        else:
+            num_jobs = len(filtered_df)
+            num_vcs = 0
         
         st.markdown(f"**{num_jobs} tech jobs | {num_vcs} VC firms** | 🟢 Green = Jobs | 🟠 Orange = VCs")
         
