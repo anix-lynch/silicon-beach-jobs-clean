@@ -1,0 +1,100 @@
+# Google Cloud Authentication for 5miles-job-search Project
+
+## Quick Reference
+
+**Account:** alynch@gozeroshot.dev  
+**Project:** maps-platform-20251011-140544  
+**Working API Key:** AIzaSyDs-dctbh-gZ6kqoKNhuv7PgL1EzEhLhLA
+
+**Key Location:** `~/.config/secrets/global.env` (line 13)  
+**⚠️ Sandbox-Safe Access:** Use `scripts/get_secret.py` instead of direct file access
+
+## When Google Maps API Fails
+
+**Root Cause 99% of time:** Wrong API key in environment
+
+**Quick Fix:**
+```bash
+# Check current key
+source ~/.config/secrets/global.env
+echo $GOOGLE_MAPS_API_KEY
+
+# Should be: AIzaSyDs-dctbh-gZ6kqoKNhuv7PgL1EzEhLhLA
+# If wrong, fix ~/.config/secrets/global.env line 13
+```
+
+## When gcloud Commands Fail
+
+**Fix:**
+```bash
+gcloud auth login --update-adc
+gcloud config set project maps-platform-20251011-140544
+```
+
+## To Enable New Google API
+
+```bash
+# 1. Find real service name
+gcloud services list --available | grep -i "API_NAME"
+
+# 2. Enable it
+gcloud services enable EXACT-SERVICE-NAME.googleapis.com --project=maps-platform-20251011-140544
+
+# 3. Wait 1-2 minutes
+
+# 4. Add to API key restrictions (if needed)
+gcloud alpha services api-keys update \
+  projects/835005185815/locations/global/keys/fdf37373-a79c-4edd-af98-5cc5db38cd17 \
+  --add-api-target=service=NEW-API.googleapis.com \
+  --project=maps-platform-20251011-140544
+```
+
+## Common API Service Names (NOT OBVIOUS!)
+
+- Distance Matrix: `distance-matrix-backend.googleapis.com` (NOT distancematrix)
+- Directions: `directions-backend.googleapis.com`
+- Geocoding: `geocoding-backend.googleapis.com`
+- BigQuery: `bigquery.googleapis.com`
+
+## Full Documentation
+
+See: `GOOGLE_CLOUD_AUTH.md` in project root for complete guide.
+
+## Testing API Key
+
+```python
+import requests, os
+key = os.getenv('GOOGLE_MAPS_API_KEY')
+resp = requests.get("https://maps.googleapis.com/maps/api/directions/json", 
+    params={'origin': '3800 Mentone Ave, Culver City, CA 90232',
+            'destination': '9696 Culver Blvd, Culver City, CA 90232',
+            'mode': 'transit', 'key': key})
+print(f"Status: {resp.json()['status']}")  # Should be 'OK'
+```
+
+---
+
+**Last Updated:** 2025-11-11  
+**Status:** ✅ Working
+
+---
+
+## 🔧 Sandbox-Safe Secret Access
+
+**Problem:** Some Cursor AI instances are sandboxed and can't access `~/.config/secrets/global.env`
+
+**Solution:** Always use workspace-relative secret loading:
+
+### For Python:
+```python
+from scripts.get_secret import get_secret
+api_key = get_secret('GOOGLE_MAPS_API_KEY')
+```
+
+### For Shell Scripts:
+```bash
+source scripts/load_secrets.sh
+```
+
+**Pattern:** Always check multiple locations, never assume filesystem access outside workspace.
+
